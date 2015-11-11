@@ -16,9 +16,44 @@
 #include <fcntl.h>
 #include <string.h>
 
+void sigchld_handler(int s)
+{
+    while(waitpid(-1, NULL, WNOHANG) > 0);
+}
+
 void error(char *msg){
 	perror(msg);
 	exit(1);
+}
+
+typedef struct {
+	char* sourceHost;
+	int sourcePort;
+	char* destHost;
+	int destPort;
+	int seqNumber;
+	int ackField;
+	int corrField;
+} Header;
+
+typedef struct {
+	Header header;
+	char data[1024];
+} Packet;
+
+void processConnection(int sock){
+	int n;
+	char buffer[2048];
+	char* fileRequested;
+
+	bzero(buffer, 2048);
+
+	//Read from client
+	if(read(sock, buffer, 2047) < 0){
+		error("ERROR reading from socket");
+	}
+
+	printf("%s\n\n", buffer);
 }
 
 int main(int argc, char *argv[]){
@@ -26,51 +61,53 @@ int main(int argc, char *argv[]){
 	int client_port, server_port;
 	socklen_t clilen;
 	struct sockaddr_in serv_addr, cli_addr;
+	struct sigaction sa;
 
-	if (argc < 3){
-		error("Error usage <server_port> <client_port>");
+	if (argc < 1){
+		error("Error usage <server_port>");
 	}
 
+	
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd < 0){
 		error("ERROR opening socket");
 	}
-
+	
 	server_port = atoi(argv[1]);
-	client_port = atoi(argv[2]);
-
+	//client_port = atoi(argv[2]);
+	
 	bzero((char *) &serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	serv_addr.sin_port = htons(server_port);
 
-	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr) < 0)){
+	if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
 		error("ERROR binding socket");
 	}
 
-	listen(sockfd,1);
+	//listen(sockfd,1);
+
+	sa.sa_handler = sigchld_handler; // reap all dead processes
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_RESTART;
+	if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+	    perror("sigaction");
+	    exit(1);
+	}
 
 	while(1){
-		newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
+		//newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
 
-		//Fork off a new process
-		process_id = fork();
-		if (process_id < 0){
-			error("ERROR on fork");
+		char buffer[2048];
+		bzero(buffer,2048);
+
+		if(recvfrom(sockfd, buffer, 2048, 0, NULL, NULL) < 0){
+			error("ERROR reading from socket");
 		}
-		//Close the parent process in child processes
-		if (process_id == 0){
-			close(sockfd);
-			
-			//do_something();
-			
-			close(newsockfd);
-			exit(0);
-		}
-		//Close child processes in the parent process
-		else {
-			close(newsockfd);
-		}
+
+		//Packet *p = (Packet *)buffer;
+		//printf("%c%c%c%c\n", buffer[0], buffer[1], buffer[2],buffer[3]);
+		printf("%s\n\n", buffer);
 	}
 
 	return 0;
