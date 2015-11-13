@@ -32,7 +32,7 @@ int main(int argc, char *argv[]){
 	int client_port, server_port;
 	int filed;
 	char *filename, *server_host;
-	struct hostent *server, *client;
+	struct hostent *server;
 	struct sockaddr_in serv_addr;
 
 	if (argc < 3){
@@ -51,15 +51,14 @@ int main(int argc, char *argv[]){
 	}
 
 	server = gethostbyname(server_host);
-	client = gethostbyname(CLIENT_HOST);
+	// client = gethostbyname(CLIENT_HOST);
 
-	if (server == NULL || client == NULL){
+	if (server == NULL){
 		error("Error, no such host");
 	}
 
 	bzero((char *) &serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
-
 	bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
 	serv_addr.sin_port = htons(server_port);
 
@@ -78,6 +77,16 @@ int main(int argc, char *argv[]){
     if (sendto(sockfd, (char *)&request, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) < 0) {
          error("ERROR sending to socket");	
      }
+
+    char buffer[2048];
+	bzero(buffer,2048);
+	socklen_t serv_len = sizeof(serv_addr);
+	if (recvfrom(sockfd, buffer, 2048, 0, (struct sockaddr *)&serv_addr, &serv_len) < 0){
+		error("ERROR reading from socket");
+	}
+	Packet *p = (Packet *)buffer;
+	printf("%d\n", (p->header).sourcePort);
+	printf("%d\n", (p->header).ackField);
 
 	close(sockfd);
 

@@ -13,8 +13,13 @@
 #include <fcntl.h>
 #include <string.h>
 
+#define CLIENT_HOST "localhost"
+#define CLIENT_PORT 8100
+#define SERVER_HOST "localhost"
+
 #define FILE_REQUEST 1
 #define DATA_REQUEST 0
+#define FILE_NOT_FOUND -1
 
 typedef struct {
 	//char* sourceHost;
