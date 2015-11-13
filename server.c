@@ -2,19 +2,20 @@
 	A server that implements Reliable Data Transfer on top of UDP
 	by Vivek Sivakumar and Colin Terndup;
 */
-#include <stdio.h>
-#include <sys/types.h> // definitions of a number of data types used in socket.h and netinet/in.h
-#include <sys/socket.h> // definitions of structures needed for sockets, e.g. sockaddr
-#include <netinet/in.h> // constants and structures needed for internet domain addresses, e.g. sockaddr_in
-#include <stdlib.h>
-#include <strings.h>
-#include <sys/wait.h> // for the waitpid() system call
-#include <signal.h>	 //signal name macros, and the kill() prototype */
-#include <unistd.h>	
-#include <time.h> // get current time for server response
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <string.h>
+// #include <stdio.h>
+// #include <sys/types.h> // definitions of a number of data types used in socket.h and netinet/in.h
+// #include <sys/socket.h> // definitions of structures needed for sockets, e.g. sockaddr
+// #include <netinet/in.h> // constants and structures needed for internet domain addresses, e.g. sockaddr_in
+// #include <stdlib.h>
+// #include <strings.h>
+// #include <sys/wait.h> // for the waitpid() system call
+// #include <signal.h>	 //signal name macros, and the kill() prototype */
+// #include <unistd.h>	
+// #include <time.h> // get current time for server response
+// #include <sys/stat.h>
+// #include <fcntl.h>
+// #include <string.h>
+#include "rdt_packet.h"
 
 void sigchld_handler(int s)
 {
@@ -26,31 +27,17 @@ void error(char *msg){
 	exit(1);
 }
 
-typedef struct {
-	//char* sourceHost;
-	int sourcePort;
-	//char* destHost;
-	int destPort;
-	int seqNumber;
-	int ackField;
-	int corrField;
-} Header;
-
-typedef struct {
-	Header header;
-	char data[1024];
-} Packet;
-
-void processConnection(int sock){
-	int n;
+void processPacket(Packet *p){
 	char buffer[2048];
-	char* fileRequested;
-
 	bzero(buffer, 2048);
+	if ((p->header).reqField == 1){
+		int filed = open(p->data, O_RDONLY);
+		if (filed < 0){
 
-	//Read from client
-	if(read(sock, buffer, 2047) < 0){
-		error("ERROR reading from socket");
+		}
+		else {
+
+		}
 	}
 
 	printf("%s\n\n", buffer);
@@ -108,9 +95,10 @@ int main(int argc, char *argv[]){
 		// printf("%s\n\n", buffer);
 
 		Packet *p = (Packet *)buffer;
-		printf("after packet* cast\n");
-		printf("%d\n", (p->header).sourcePort);
-		printf("%d\n", (p->header).destPort);
+		processPacket(p);
+		// printf("after packet* cast\n");
+		// printf("%d\n", (p->header).sourcePort);
+		// printf("%d\n", (p->header).destPort);
 	}
 
 	return 0;

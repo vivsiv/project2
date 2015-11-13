@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-I.
-DEPS = # header file 
+DEPS = rdt_packet.h
 OBJ = server.o 
 OBJ2 = client.o
 

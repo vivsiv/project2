@@ -2,20 +2,22 @@
 	A client that implements Reliable Data Transfer on top of UDP
 	by Vivek Sivakumar and Colin Terndup;
 */
-#include <stdio.h>
-#include <sys/types.h> // definitions of a number of data types used in socket.h and netinet/in.h
-#include <sys/socket.h> // definitions of structures needed for sockets, e.g. sockaddr
-#include <netinet/in.h> // constants and structures needed for internet domain addresses, e.g. sockaddr_in
-#include <netdb.h>      // define structures like hostent
-#include <stdlib.h>
-#include <strings.h>
-#include <sys/wait.h> // for the waitpid() system call
-#include <signal.h>	 //signal name macros, and the kill() prototype */
-#include <unistd.h>	
-#include <time.h> // get current time for server response
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <string.h>
+// #include <stdio.h>
+// #include <sys/types.h> // definitions of a number of data types used in socket.h and netinet/in.h
+// #include <sys/socket.h> // definitions of structures needed for sockets, e.g. sockaddr
+// #include <netinet/in.h> // constants and structures needed for internet domain addresses, e.g. sockaddr_in
+// #include <netdb.h>      // define structures like hostent
+// #include <stdlib.h>
+// #include <strings.h>
+// #include <sys/wait.h> // for the waitpid() system call
+// #include <signal.h>	 //signal name macros, and the kill() prototype */
+// #include <unistd.h>	
+// #include <time.h> // get current time for server response
+// #include <sys/stat.h>
+// #include <fcntl.h>
+// #include <string.h>
+
+#include "rdt_packet.h"
 
 #define CLIENT_HOST "localhost"
 #define CLIENT_PORT 8100
@@ -23,33 +25,6 @@
 void error(char *msg){
 	perror(msg);
 	exit(1);
-}
-
-typedef struct {
-	//char* sourceHost;
-	int sourcePort;
-	//char* destHost;
-	int destPort;
-	int seqNumber;
-	int ackField;
-	int corrField;
-} Header;
-
-typedef struct {
-	Header header;
-	char data[1024];
-} Packet;
-
-void buildHeader(Packet *p, int srcPort, int destPort, int seqNumber, int ackField, int corrField){
-	(p->header).sourcePort = srcPort;
-	(p->header).destPort = destPort;
-	(p->header).seqNumber = seqNumber;
-	(p->header).ackField = ackField;
-	(p->header).corrField = corrField;
-}
-
-void addData(Packet *p, char *data){
-	bcopy(data, p->data, strlen(data));
 }
 
 int main(int argc, char *argv[]){
@@ -68,11 +43,6 @@ int main(int argc, char *argv[]){
 	server_host = argv[1];
 	server_port = atoi(argv[2]);
 	filename = argv[3];
-	// filed = open(filename, O_RDONLY);
-
-	// if (filed < 0){
-	// 	error("Error file not found");
-	// }
 
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -89,12 +59,12 @@ int main(int argc, char *argv[]){
 
 	bzero((char *) &serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
-	
+
 	bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
 	serv_addr.sin_port = htons(server_port);
 
 	Packet request;
-	buildHeader(&request, client_port, server_port, 0, 0, 0);
+	buildHeader(&request, client_port, server_port, FILE_REQUEST, 0, 0, 0);
 	//printf("clientHost: %s\n", client->h_addr);
 	printf("clientPort: %d\n", request.header.sourcePort);
 	//printf("serverHost: %s\n", request.header.destHost);
