@@ -82,51 +82,56 @@ int main(int argc, char *argv[]){
 	    exit(1);
 	}
 	
-
+	int transNum = 0;
+	int filed;
+	char buffer[PACKET_SIZE];
+	clilen = sizeof(cli_addr);
+	char fileBuf[MAX_DATA];
+	int bread;
 	while(1){
-		char buffer[2048];
-		bzero(buffer,2048);
+		bzero(buffer,PACKET_SIZE);
+		bzero(fileBuf, MAX_DATA);
 
-		socklen_t clilen = sizeof(cli_addr);
-		if(recvfrom(sockfd, buffer, 2048, 0, (struct sockaddr *)&cli_addr, &clilen) < 0){
+		if(recvfrom(sockfd, buffer, PACKET_SIZE, 0, (struct sockaddr *)&cli_addr, &clilen) < 0){
 			error("ERROR reading from socket");
 		}
 
-		Packet *p = (Packet *)buffer;
-		printf("Received packet from address:%d\n",cli_addr.sin_addr.s_addr);
-		printf("Received packet from port:%d\n",cli_addr.sin_port);
+		Packet *request = (Packet *)buffer;
+		printf("%d)Received packet: ", transNum);
+		printPacket(request);
+
 		Packet response;
-		int filed;
-		if ((p->header).reqField == 1){
-			printf("A file request was sent!\n");
-			int filed = open(p->data, O_RDONLY);
-			printf("filed: %d\n",filed);
+		if ((request->header).reqField == 1){
+			filed = open(request->data, O_RDONLY);
 			if (filed < 0){
-				printf("Building file NOT found response packet!\n");
-				buildHeader(&response, (p->header).destPort, (p->header).sourcePort, FILE_REQUEST, 0, FILE_NOT_FOUND, 0);
-				printf("Response: file_request:%d, file_found:%d\n", response.header.reqField, response.header.ackField);
+				buildHeader(&response, (request->header).destPort, (request->header).sourcePort, FILE_REQUEST, 0, FILE_NOT_FOUND, NOT_CORRUPTED, END);
 			}
 			else{
-				printf("Building a file FOUND response packet!\n");
-				buildHeader(&response, (p->header).destPort, (p->header).sourcePort, FILE_REQUEST, 0, 1, 0);
-				printf("Response: file_request:%d, file_found:%d\n", response.header.reqField, response.header.ackField);
+				buildHeader(&response, (request->header).destPort, (request->header).sourcePort, FILE_REQUEST, 0, 1, NOT_CORRUPTED, KEEP_ALIVE);
 			}
 			if (sendto(sockfd, (char *)&response, sizeof(Packet), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr_in)) < 0) {
 		        error("ERROR sending to socket");	
 		    }
 			
 		}
-		// else {
-		// 	while (0){
+		else {
+			bread = read(filed, fileBuf, MAX_DATA - 1);
+			int end  = bread > 0 ? KEEP_ALIVE : END;
+			bzero(&response, sizeof(Packet));
 
-		// 	}
-		// }
-		
-
-
-		// printf("after packet* cast\n");
-		// printf("%d\n", (p->header).sourcePort);
-		// printf("%d\n", (p->header).destPort);
+			buildHeader(&response, (request->header).destPort, (request->header).sourcePort, FILE_REQUEST, (request->header).seqNumber, 0, NOT_CORRUPTED, end);
+			addData(&response, fileBuf);
+			// printf("%d)Before Sending packet: ", transNum);
+			// printPacket(&response);
+			if (sendto(sockfd, (char *)&response, sizeof(Packet), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr_in)) < 0) {
+		        error("ERROR sending to socket");	
+		    }
+		    
+		}
+		printf("%d)Sent packet: ", transNum);
+		printPacket(&response);
+		if (bread == 0) break;
+		transNum++;
 	}
 
 	return 0;

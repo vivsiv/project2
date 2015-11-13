@@ -20,6 +20,15 @@
 #define FILE_REQUEST 1
 #define DATA_REQUEST 0
 #define FILE_NOT_FOUND -1
+#define MAX_DATA 1024
+
+#define PACKET_SIZE 2048
+
+#define CORRUPTED 1
+#define NOT_CORRUPTED 0
+
+#define END 1
+#define KEEP_ALIVE 0
 
 typedef struct {
 	//char* sourceHost;
@@ -30,22 +39,35 @@ typedef struct {
 	int seqNumber;
 	int ackField;
 	int corrField;
+	int endTrans;
 } Header;
 
 typedef struct {
 	Header header;
-	char data[1024];
+	char data[MAX_DATA];
 } Packet;
 
-void buildHeader(Packet *p, int srcPort, int destPort, int reqField, int seqNumber, int ackField, int corrField){
+void buildHeader(Packet *p, int srcPort, int destPort, int reqField, int seqNumber, int ackField, int corrField, int endTrans){
 	(p->header).sourcePort = srcPort;
 	(p->header).destPort = destPort;
 	(p->header).reqField = reqField;
 	(p->header).seqNumber = seqNumber;
 	(p->header).ackField = ackField;
 	(p->header).corrField = corrField;
+	(p->header).endTrans = endTrans;
 }
 
 void addData(Packet *p, char *data){
 	bcopy(data, p->data, strlen(data));
+}
+
+void printPacket(Packet *p){
+	char dataSample[11];
+	strncpy(dataSample, p->data, 10);
+	dataSample[10] = '\0';
+	
+	
+	// strncat(dataSample,"\0",1);
+	printf("seq:%d|src:%d|dest:%d|ack:%d|req:%d|end:%d|data:%s\n",(p->header).seqNumber, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).endTrans, dataSample);
+
 }

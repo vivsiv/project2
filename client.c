@@ -63,7 +63,7 @@ int main(int argc, char *argv[]){
 	serv_addr.sin_port = htons(server_port);
 
 	Packet request;
-	buildHeader(&request, client_port, server_port, FILE_REQUEST, 0, 0, 0);
+	buildHeader(&request, client_port, server_port, FILE_REQUEST, 0, 0, NOT_CORRUPTED, KEEP_ALIVE);
 	//printf("clientHost: %s\n", client->h_addr);
 	printf("clientPort: %d\n", request.header.sourcePort);
 	//printf("serverHost: %s\n", request.header.destHost);
@@ -76,17 +76,40 @@ int main(int argc, char *argv[]){
 
     if (sendto(sockfd, (char *)&request, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) < 0) {
          error("ERROR sending to socket");	
-     }
+    }
+    int transNum = 0;
+    printf("%d)Sent packet: ", transNum);
+	printPacket(&request);
 
-    char buffer[2048];
-	bzero(buffer,2048);
+    char buffer[PACKET_SIZE];
+	bzero(buffer,PACKET_SIZE);
 	socklen_t serv_len = sizeof(serv_addr);
-	if (recvfrom(sockfd, buffer, 2048, 0, (struct sockaddr *)&serv_addr, &serv_len) < 0){
+	if (recvfrom(sockfd, buffer, PACKET_SIZE, 0, (struct sockaddr *)&serv_addr, &serv_len) < 0){
 		error("ERROR reading from socket");
 	}
-	Packet *p = (Packet *)buffer;
-	printf("%d\n", (p->header).sourcePort);
-	printf("%d\n", (p->header).ackField);
+	Packet *response = (Packet *)buffer;
+	printf("%d)Received packet: ",transNum);
+	printPacket(response);
+	//FILE NOT FOUND
+	while((response->header).endTrans != END){
+		transNum++;
+		bzero(&request, sizeof(Packet));
+		buildHeader(&request, client_port, server_port, DATA_REQUEST, !((response->header).seqNumber) ,0, NOT_CORRUPTED, KEEP_ALIVE);
+	    if (sendto(sockfd, (char *)&request, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) < 0) {
+	         error("ERROR sending to socket");	
+	    }
+	    printf("%d)Sent packet: ", transNum);
+		printPacket(&request);
+
+		bzero(buffer,PACKET_SIZE);
+		serv_len = sizeof(serv_addr);
+		if (recvfrom(sockfd, buffer, PACKET_SIZE, 0, (struct sockaddr *)&serv_addr, &serv_len) < 0){
+			error("ERROR reading from socket");
+		}
+		Packet *response = (Packet *)buffer;
+		printf("%d)Received packet: ",transNum);
+		printPacket(response);	
+	}
 
 	close(sockfd);
 
