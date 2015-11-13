@@ -27,9 +27,9 @@ void error(char *msg){
 }
 
 typedef struct {
-	char* sourceHost;
+	//char* sourceHost;
 	int sourcePort;
-	char* destHost;
+	//char* destHost;
 	int destPort;
 	int seqNumber;
 	int ackField;
@@ -105,9 +105,12 @@ int main(int argc, char *argv[]){
 			error("ERROR reading from socket");
 		}
 
-		//Packet *p = (Packet *)buffer;
-		//printf("%c%c%c%c\n", buffer[0], buffer[1], buffer[2],buffer[3]);
-		printf("%s\n\n", buffer);
+		// printf("%s\n\n", buffer);
+
+		Packet *p = (Packet *)buffer;
+		printf("after packet* cast\n");
+		printf("%d\n", (p->header).sourcePort);
+		printf("%d\n", (p->header).destPort);
 	}
 
 	return 0;

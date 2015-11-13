@@ -26,9 +26,9 @@ void error(char *msg){
 }
 
 typedef struct {
-	char* sourceHost;
+	//char* sourceHost;
 	int sourcePort;
-	char* destHost;
+	//char* destHost;
 	int destPort;
 	int seqNumber;
 	int ackField;
@@ -40,10 +40,8 @@ typedef struct {
 	char data[1024];
 } Packet;
 
-void buildHeader(Packet *p, char* srcHost, int srcPort, char* destHost, int destPort, int seqNumber, int ackField, int corrField){
-	(p->header).sourceHost = srcHost;
+void buildHeader(Packet *p, int srcPort, int destPort, int seqNumber, int ackField, int corrField){
 	(p->header).sourcePort = srcPort;
-	(p->header).destHost = destHost;
 	(p->header).destPort = destPort;
 	(p->header).seqNumber = seqNumber;
 	(p->header).ackField = ackField;
@@ -51,7 +49,7 @@ void buildHeader(Packet *p, char* srcHost, int srcPort, char* destHost, int dest
 }
 
 void addData(Packet *p, char *data){
-	bcopy(p->data, data, strlen(data));
+	bcopy(data, p->data, strlen(data));
 }
 
 int main(int argc, char *argv[]){
@@ -85,29 +83,31 @@ int main(int argc, char *argv[]){
 	server = gethostbyname(server_host);
 	client = gethostbyname(CLIENT_HOST);
 
-	if (server == NULL){
+	if (server == NULL || client == NULL){
 		error("Error, no such host");
 	}
 
 	bzero((char *) &serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
+	
 	bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
-	//serv_addr.sin_addr.s_addr = INADDR_ANY;
 	serv_addr.sin_port = htons(server_port);
 
-	// if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
-	// 	error("Error connecting to server");
-	// }
-
 	Packet request;
-	// buildHeader(&request, client->h_addr, client_port, server->h_addr, server_port, 0, 0, 0);
-	// char* data = filename;
-	// addData(&request,data);
+	buildHeader(&request, client_port, server_port, 0, 0, 0);
+	//printf("clientHost: %s\n", client->h_addr);
+	printf("clientPort: %d\n", request.header.sourcePort);
+	//printf("serverHost: %s\n", request.header.destHost);
+	printf("serverPort: %d\n", request.header.destPort);
+	printf("seqNumber: %d\n", request.header.seqNumber);
 
-    if (sendto(sockfd, filename, strlen(filename), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) < 0) {
+	char* data = filename;
+	addData(&request,data);
+	printf("Data: %s\n", request.data);
+
+    if (sendto(sockfd, (char *)&request, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) < 0) {
          error("ERROR sending to socket");	
      }
-	//do_stuff();
 
 	close(sockfd);
 
