@@ -30,6 +30,8 @@
 #define END 1
 #define KEEP_ALIVE 0
 
+#define WINDOW_SIZE 3
+
 typedef struct {
 	//char* sourceHost;
 	int sourcePort;

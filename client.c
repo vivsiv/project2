@@ -86,15 +86,21 @@ int main(int argc, char *argv[]){
 	printPacket(response);
 
 	//FILE NOT FOUND
+	int windowStart = (response->header).seqNumber + 1;
+	int windowEnd = windowStart + WINDOW_SIZE;
+	int currSeq = windowStart;
 	while((response->header).endTrans != END){
 		transNum++;
-		bzero(&request, sizeof(Packet));
-		buildHeader(&request, client_port, server_port, DATA_REQUEST, !((response->header).seqNumber) ,0, NOT_CORRUPTED, KEEP_ALIVE);
-	    if (sendto(sockfd, (char *)&request, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) < 0) {
-	         error("ERROR sending to socket");	
-	    }
-	    printf("%d)Sent packet: ", transNum);
-		printPacket(&request);
+		while (currSeq < windowEnd){
+			bzero(&request, sizeof(Packet));
+			buildHeader(&request, client_port, server_port, DATA_REQUEST, currSeq ,0, NOT_CORRUPTED, KEEP_ALIVE);
+		    if (sendto(sockfd, (char *)&request, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) < 0) {
+		         error("ERROR sending to socket");	
+		    }
+		    printf("%d)Sent packet: ", currSeq);
+			printPacket(&request);
+			currSeq++;
+		}
 
 		bzero(buffer,PACKET_SIZE);
 		serv_len = sizeof(serv_addr);
@@ -102,8 +108,16 @@ int main(int argc, char *argv[]){
 			error("ERROR reading from socket");
 		}
 		Packet *response = (Packet *)buffer;
-		printf("%d)Received packet: ",transNum);
-		printPacket(response);	
+		printf("%d)Received packet: ", (response->header).seqNumber);
+		printPacket(response);
+		if ((response->header).seqNumber == windowStart){
+			windowStart++;
+			windowEnd++;
+			// if (windowStart == 2 * WINDOW_SIZE) {
+			// 	windowStart = 0;
+			// 	windowEnd = WINDOW_SIZE;
+			// }
+		}
 	}
 
 	close(sockfd);
