@@ -22,9 +22,23 @@
 #define CLIENT_HOST "localhost"
 #define CLIENT_PORT 8100
 
+//#define RAND_MAX 100
+
 void error(char *msg){
 	perror(msg);
 	exit(1);
+}
+
+int corruptedPacket(float corrPct){
+	float r = (float)(rand() % 100);
+	float corrLimit = corrPct * 100.0;
+    return r < corrLimit ? CORRUPTED : NOT_CORRUPTED;
+}
+
+int lostPacket(float lossPct){
+	float r = (float)(rand() % 100);
+	float lossLimit = lossPct * 100.0;
+    return r < lossLimit ? LOST : NOT_LOST;
 }
 
 int main(int argc, char *argv[]){
@@ -34,6 +48,7 @@ int main(int argc, char *argv[]){
 	char *filename, *server_host;
 	struct hostent *server;
 	struct sockaddr_in serv_addr, cli_addr;
+	float lossPct, corrPct;
 
 	if (argc < 3){
 		error("Error usage <server_host> <server_port> <filename>");
@@ -43,6 +58,8 @@ int main(int argc, char *argv[]){
 	server_host = argv[1];
 	server_port = atoi(argv[2]);
 	filename = argv[3];
+	if (argv[4]) lossPct = atof(argv[4]);
+	if (argv[5]) corrPct = atof(argv[5]);
 
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -116,63 +133,37 @@ int main(int argc, char *argv[]){
 	Packet *dataRecieved;
 	Packet ackSent;
 	while(1){
+		//printf("Expecting sequence: %d\n", expectedSeq);
 		bzero(recv_buffer,PACKET_SIZE);
 		if(recvfrom(sockfd, recv_buffer, PACKET_SIZE, 0, (struct sockaddr *)&serv_addr, &servlen) < 0){
 			error("ERROR reading from socket");
 		}
 
+
 		dataRecieved = (Packet *)recv_buffer;
 		int recv_seq = (dataRecieved->header).seqNumber;
+		//printf("Received sequence: %d\n", recv_seq);
 		if (recv_seq == expectedSeq){
 			printf("%d)Received DATA: ", recv_seq);
 			printPacket(dataRecieved);
+			int corrupted = corruptedPacket(corrPct);
+			//printf("Seq %d Corrupted %d\n", recv_seq, corrupted);
+			//if (!corrupted){
+				bzero(&ackSent, sizeof(Packet));
+				buildHeader(&ackSent, client_port, server_port, DATA, recv_seq, ACK, corrupted, (dataRecieved->header).transAlive);
 
-			bzero(&ackSent, sizeof(Packet));
-			buildHeader(&ackSent, client_port, server_port, DATA, recv_seq, ACK, NOT_CORRUPTED, (dataRecieved->header).transAlive);
-
-			if (sendto(sockfd, (char *)&ackSent, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0) {
-		        error("ERROR sending to socket");	
-		    }
-			    
-			printf("%d)Sent ACK: ", recv_seq);
-			printPacket(&ackSent);
-			if ((dataRecieved->header).transAlive == END) break;
-			expectedSeq++;
-			transNum++;
+				if (sendto(sockfd, (char *)&ackSent, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0) {
+			        error("ERROR sending to socket");	
+			    }
+				    
+				printf("%d)Sent ACK: ", recv_seq);
+				printPacket(&ackSent);
+				if ((dataRecieved->header).transAlive == END) break;
+				if (!corrupted) expectedSeq++;
+				transNum++;
+			//}
 		}
 	}
-
-
-	// while((dataRecieved->header).endTrans != END){
-	// 	transNum++;
-	// 	while ( < windowEnd){
-	// 		bzero(&request, sizeof(Packet));
-	// 		buildHeader(&request, client_port, server_port, DATA_REQUEST, currSeq ,0, NOT_CORRUPTED, KEEP_ALIVE);
-	// 	    if (sendto(sockfd, (char *)&request, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) < 0) {
-	// 	         error("ERROR sending to socket");	
-	// 	    }
-	// 	    printf("%d)Sent packet: ", currSeq);
-	// 		printPacket(&request);
-	// 		currSeq++;
-	// 	}
-
-	// 	bzero(buffer,PACKET_SIZE);
-	// 	serv_len = sizeof(serv_addr);
-	// 	if (recvfrom(sockfd, buffer, PACKET_SIZE, 0, (struct sockaddr *)&serv_addr, &serv_len) < 0){
-	// 		error("ERROR reading from socket");
-	// 	}
-	// 	Packet *response = (Packet *)buffer;
-	// 	printf("%d)Received packet: ", (response->header).seqNumber);
-	// 	printPacket(response);
-	// 	if ((response->header).seqNumber == windowStart){
-	// 		windowStart++;
-	// 		windowEnd++;
-	// 		if (windowStart == 2 * WINDOW_SIZE) {
-	// 			windowStart = 0;
-	// 			windowEnd = WINDOW_SIZE;
-	// 		}
-	// 	}
-	// }
 
 	close(sockfd);
 

@@ -17,6 +17,9 @@
 // #include <string.h>
 
 #include "rdt_packet.h"
+#define RTO 50
+
+static int TIMEOUT = 0;
 
 void sigchld_handler(int s)
 {
@@ -41,6 +44,11 @@ void error(char *msg){
 
 // 	printf("%s\n\n", buffer);
 // }
+
+void timeout(void) {
+  TIMEOUT = 1;
+  //printf("Timeout\n");
+}
 
 int main(int argc, char *argv[]){
 	int sockfd, newsockfd, process_id;
@@ -111,6 +119,8 @@ int main(int argc, char *argv[]){
 			if (sendto(sockfd, (char *)&fileResponse, sizeof(Packet), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr_in)) < 0) {
 		        error("ERROR sending to socket");	
 		    }
+		    printf("Sent File Response: ");
+			printPacket(&fileResponse);
 		    client_port = fileResponse.header.destPort;
 		 break;
 		}
@@ -134,35 +144,68 @@ int main(int argc, char *argv[]){
 	int windowStart = 0;
 	int windowEnd = windowStart + WINDOW_SIZE;
 	int currSeq = windowStart;
+	Packet *window[WINDOW_SIZE];
 
 	int b_read;
 	char readBuf[MAX_DATA];
 	bzero(readBuf,MAX_DATA);
 
-	Packet dataSent;
+	int lastSeq = -1;
+	int lastAck = -1;
+	int TRANS_ALIVE = KEEP_ALIVE;
+
+	Packet *dataSent;
 	Packet *ackRecieved;
 
-	int endAck = -1;
-	int TRANS_ALIVE = KEEP_ALIVE;
+	struct itimerval window_timer;	/* for setting itimer */
+	(void) signal(SIGALRM, (void (*)(int))timeout);
+	window_timer.it_value.tv_sec = RTO/1000;
+  	window_timer.it_value.tv_usec = (RTO * 1000) % 1000000;
+  	window_timer.it_interval = window_timer.it_value;
+  	//setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&(window_timer.it_interval),sizeof(struct timeval));
+
+  	//setitimer(ITIMER_REAL, &window_timer, NULL);
 	while(1){
-		transNum++;
-		while (TRANS_ALIVE && currSeq < windowEnd){
-			//Read File
-			bzero(readBuf, MAX_DATA);
-			b_read = read(filed, readBuf, MAX_DATA - 1);
-			TRANS_ALIVE = b_read > 0 ? KEEP_ALIVE : END;
-			//Prepare Dat packet
-			bzero(&dataSent, sizeof(Packet));
-			buildHeader(&dataSent, server_port, client_port, DATA, currSeq , TRANS, NOT_CORRUPTED, TRANS_ALIVE);
-			addData(&dataSent, readBuf);
-			//Send Data packet
-		    if (sendto(sockfd, (char *)&dataSent, sizeof(Packet), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr)) < 0) {
-		         error("ERROR sending to socket");	
-		    }
-		    printf("%d)Sent DATA: ", currSeq);
-			printPacket(&dataSent);
-			if (b_read == 0) endAck = currSeq;
-			currSeq++;
+		//printf("looping\n");
+		//RETRANSMIT
+		if (lastAck < currSeq - 1){
+			//TIMEOUT = 0;
+			//setitimer(ITIMER_REAL, &window_timer, NULL);
+			int retransNum = lastAck + 1;
+			while (retransNum < currSeq){
+				//printf("lastAck: %d\n", lastAck);
+				//printf("Packet accessed %d\n", (lastAck + 1) % WINDOW_SIZE);
+				dataSent = window[(retransNum) % WINDOW_SIZE];
+				if (sendto(sockfd, (char *)dataSent, sizeof(Packet), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr)) < 0) {
+			         error("ERROR sending to socket");	
+			    }
+			    printf("%d)RE-Sent DATA: ", currSeq);
+				printPacket(dataSent);
+				retransNum++;
+			}
+		}
+		//REGULAR TRANSMIT
+		else {
+			while (TRANS_ALIVE && currSeq < windowEnd){
+				// //Read File
+				bzero(readBuf, MAX_DATA);
+				b_read = read(filed, readBuf, MAX_DATA - 1);
+				TRANS_ALIVE = b_read > 0 ? KEEP_ALIVE : END;
+
+				dataSent = (Packet *)malloc(sizeof(Packet));
+				buildHeader(dataSent, server_port, client_port, DATA, currSeq , TRANS, NOT_CORRUPTED, TRANS_ALIVE);
+				addData(dataSent, readBuf);
+				window[currSeq % WINDOW_SIZE] = dataSent;
+				//Send Data packet
+			    if (sendto(sockfd, (char *)dataSent, sizeof(Packet), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr)) < 0) {
+			         error("ERROR sending to socket");	
+			    }
+			    printf("%d)Sent DATA: ", currSeq);
+				printPacket(dataSent);
+				if (b_read == 0) lastSeq = currSeq;
+				currSeq++;
+				//printf("Current Seq %d\n", currSeq);
+			}
 		}
 		//Prepare receiving packet;
 		bzero(recv_buffer,PACKET_SIZE);
@@ -170,51 +213,21 @@ int main(int argc, char *argv[]){
 			error("ERROR reading from socket");
 		}
 		ackRecieved = (Packet *)recv_buffer;
+		if (!(ackRecieved->header).corrField) lastAck = (ackRecieved->header).seqNumber;
 		printf("%d)Received ACK: ", (ackRecieved->header).seqNumber);
 		printPacket(ackRecieved);
-		if ((ackRecieved->header).seqNumber == endAck) break;
-		else if ((ackRecieved->header).seqNumber == windowStart){
+		if ((ackRecieved->header).seqNumber == lastSeq) break;
+		else if (lastAck == windowStart){
 			windowStart++;
 			windowEnd++;
-			// if (windowStart == 2 * WINDOW_SIZE) {
-			// 	windowStart = 0;
-			// 	windowEnd = WINDOW_SIZE;
-			// }
+			//setitimer(ITIMER_REAL, &window_timer, NULL);
+			//windowStart = clock();
+			free(window[0]);
+			memcpy(window, window + 1, (WINDOW_SIZE - 1) * sizeof(Packet *));
 		}
 	}
 
 	close(sockfd);
-
-
-	// while(1){
-	// 	bzero(buffer,PACKET_SIZE);
-	// 	bzero(fileBuf, MAX_DATA);
-
-	// 	if(recvfrom(sockfd, buffer, PACKET_SIZE, 0, (struct sockaddr *)&cli_addr, &clilen) < 0){
-	// 		error("ERROR reading from socket");
-	// 	}
-
-	// 	request = (Packet *)buffer;
-	// 	if ((request->header).seqNumber >= windowStart && (request->header).seqNumber < windowEnd){
-	// 	printf("%d)Received packet: ", transNum);
-	// 	printPacket(request);
-
-	// 	bread = read(filed, fileBuf, MAX_DATA - 1);
-	// 	int end  = bread > 0 ? KEEP_ALIVE : END;
-	// 	bzero(&response, sizeof(Packet));
-
-	// 	buildHeader(&response, (request->header).destPort, (request->header).sourcePort, FILE_REQUEST, (request->header).seqNumber, 0, NOT_CORRUPTED, end);
-	// 	addData(&response, fileBuf);
-
-	// 	if (sendto(sockfd, (char *)&response, sizeof(Packet), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr_in)) < 0) {
-	//         error("ERROR sending to socket");	
-	//     }
-		    
-	// 	printf("%d)Sent packet: ", transNum);
-	// 	printPacket(&response);
-	// 	if (bread == 0) break;
-	// 	transNum++;
-	// }
 
 	return 0;
 }

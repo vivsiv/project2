@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/time.h>
 
 #define CLIENT_HOST "localhost"
 #define CLIENT_PORT 8100
@@ -33,7 +34,10 @@
 #define END 0
 #define KEEP_ALIVE 1
 
-#define WINDOW_SIZE 2
+#define LOST 1
+#define NOT_LOST 0
+
+#define WINDOW_SIZE 5
 
 typedef struct {
 	//char* sourceHost;
@@ -73,6 +77,6 @@ void printPacket(Packet *p){
 	
 	
 	// strncat(dataSample,"\0",1);
-	printf("seq:%d|src:%d|dest:%d|ack:%d|req:%d|alive:%d|data:%s\n",(p->header).seqNumber, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).transAlive, dataSample);
+	printf("seq:%d|corr:%d|src:%d|dest:%d|ack:%d|req:%d|alive:%d|data:%s\n",(p->header).seqNumber, (p->header).corrField, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).transAlive, dataSample);
 
 }
