@@ -17,9 +17,8 @@
 #define CLIENT_PORT 8100
 #define SERVER_HOST "localhost"
 
-#define FILE_REQUEST 1
-#define DATA_REQUEST 0
-#define FILE_NOT_FOUND -1
+#define FILE 1
+#define DATA 0
 #define MAX_DATA 1024
 
 #define PACKET_SIZE 2048
@@ -27,10 +26,14 @@
 #define CORRUPTED 1
 #define NOT_CORRUPTED 0
 
-#define END 1
-#define KEEP_ALIVE 0
+#define ACK 1
+#define TRANS 0
+#define FILE_NOT_FOUND -1
 
-#define WINDOW_SIZE 3
+#define END 0
+#define KEEP_ALIVE 1
+
+#define WINDOW_SIZE 2
 
 typedef struct {
 	//char* sourceHost;
@@ -41,7 +44,7 @@ typedef struct {
 	int seqNumber;
 	int ackField;
 	int corrField;
-	int endTrans;
+	int transAlive;
 } Header;
 
 typedef struct {
@@ -49,14 +52,14 @@ typedef struct {
 	char data[MAX_DATA];
 } Packet;
 
-void buildHeader(Packet *p, int srcPort, int destPort, int reqField, int seqNumber, int ackField, int corrField, int endTrans){
+void buildHeader(Packet *p, int srcPort, int destPort, int reqField, int seqNumber, int ackField, int corrField, int transAlive){
 	(p->header).sourcePort = srcPort;
 	(p->header).destPort = destPort;
 	(p->header).reqField = reqField;
 	(p->header).seqNumber = seqNumber;
 	(p->header).ackField = ackField;
 	(p->header).corrField = corrField;
-	(p->header).endTrans = endTrans;
+	(p->header).transAlive = transAlive;
 }
 
 void addData(Packet *p, char *data){
@@ -70,6 +73,6 @@ void printPacket(Packet *p){
 	
 	
 	// strncat(dataSample,"\0",1);
-	printf("seq:%d|src:%d|dest:%d|ack:%d|req:%d|end:%d|data:%s\n",(p->header).seqNumber, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).endTrans, dataSample);
+	printf("seq:%d|src:%d|dest:%d|ack:%d|req:%d|alive:%d|data:%s\n",(p->header).seqNumber, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).transAlive, dataSample);
 
 }
