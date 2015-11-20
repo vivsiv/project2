@@ -64,15 +64,8 @@ int main(int argc, char *argv[]){
 
 	Packet request;
 	buildHeader(&request, client_port, server_port, FILE_REQUEST, 0, 0, NOT_CORRUPTED, KEEP_ALIVE);
-	//printf("clientHost: %s\n", client->h_addr);
-	printf("clientPort: %d\n", request.header.sourcePort);
-	//printf("serverHost: %s\n", request.header.destHost);
-	printf("serverPort: %d\n", request.header.destPort);
-	printf("seqNumber: %d\n", request.header.seqNumber);
-
 	char* data = filename;
 	addData(&request,data);
-	printf("Data: %s\n", request.data);
 
     if (sendto(sockfd, (char *)&request, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) < 0) {
          error("ERROR sending to socket");	
@@ -87,9 +80,11 @@ int main(int argc, char *argv[]){
 	if (recvfrom(sockfd, buffer, PACKET_SIZE, 0, (struct sockaddr *)&serv_addr, &serv_len) < 0){
 		error("ERROR reading from socket");
 	}
+
 	Packet *response = (Packet *)buffer;
 	printf("%d)Received packet: ",transNum);
 	printPacket(response);
+
 	//FILE NOT FOUND
 	while((response->header).endTrans != END){
 		transNum++;
