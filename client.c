@@ -52,7 +52,6 @@ int main(int argc, char *argv[]){
 	}
 
 	server = gethostbyname(server_host);
-	// client = gethostbyname(CLIENT_HOST);
 
 	if (server == NULL){
 		error("Error, no such host");
@@ -120,7 +119,6 @@ int main(int argc, char *argv[]){
 	Packet ackSent;
 	while(1){
 		//RECEIVE DATA
-		//printf("Expecting sequence: %d\n", expectedSeq);
 		bzero(recv_buffer,PACKET_SIZE);
 		if(recvfrom(sockfd, recv_buffer, PACKET_SIZE, 0, (struct sockaddr *)&serv_addr, &servlen) < 0){
 			error("ERROR reading from socket");
@@ -129,7 +127,6 @@ int main(int argc, char *argv[]){
 
 		dataRecieved = (Packet *)recv_buffer;
 		int recv_seq = (dataRecieved->header).seqNumber;
-		//printf("Received sequence: %d\n", recv_seq);
 		//SEND ACK
 		if (recv_seq == expectedSeq){
 			printf("%d)Received DATA: ", recv_seq);

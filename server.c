@@ -8,8 +8,6 @@
 
 #define RTO_MSEC 500
 
-static int TIMEOUT = 0;
-
 void sigchld_handler(int s)
 {
     while(waitpid(-1, NULL, WNOHANG) > 0);
@@ -18,11 +16,6 @@ void sigchld_handler(int s)
 void error(char *msg){
 	perror(msg);
 	exit(1);
-}
-
-void timeout(void) {
-  TIMEOUT = 1;
-  //printf("Timeout\n");
 }
 
 int main(int argc, char *argv[]){
@@ -139,7 +132,7 @@ int main(int argc, char *argv[]){
     int polled;
 
 	while(1){
-		printf("Window %d-%d\n", windowStart, windowEnd);
+		printf("Window [%d-%d), Size:%d\n", windowStart, windowEnd, WINDOW_SIZE);
 		//REGULAR TRANSMIT
 		while (TRANS_ALIVE && currSeq < windowEnd){
 			//Read File
@@ -160,7 +153,6 @@ int main(int argc, char *argv[]){
 			printPacket(dataSent);
 			if (b_read == 0) lastSeq = currSeq;
 			currSeq++;
-			//printf("Current Seq %d\n", currSeq);
 		}
 		polled = poll(sockets, 1, RTO_MSEC);
 		if (polled == POLLIN){
@@ -187,9 +179,6 @@ int main(int argc, char *argv[]){
 			int retransNum = lastAck + 1;
 			int retransIdx = 0;
 			while (retransNum < currSeq && retransIdx < WINDOW_SIZE){
-				//printf("lastAck: %d\n", lastAck);
-				//printf("Packet accessed %d\n", (lastAck + 1) % WINDOW_SIZE);
-				
 				dataSent = window[retransIdx];
 				if (retransNum == (dataSent->header).seqNumber){
 					if (sendto(sockfd, (char *)dataSent, sizeof(Packet), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr)) < 0) {
