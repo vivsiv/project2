@@ -147,8 +147,9 @@ int main(int argc, char *argv[]){
 			printf("%d)Received DATA: ", recv_seq);
 			printPacket(dataRecieved);
 			int corrupted = corruptedPacket(corrPct);
-			//printf("Seq %d Corrupted %d\n", recv_seq, corrupted);
-			//if (!corrupted){
+			int lost = lostPacket(lossPct);
+			printf("Seq %d Corrupted %d Lost %d\n", recv_seq, corrupted, lost);
+			//if (!corrupted && !lost){
 				bzero(&ackSent, sizeof(Packet));
 				buildHeader(&ackSent, client_port, server_port, DATA, recv_seq, ACK, corrupted, (dataRecieved->header).transAlive);
 
