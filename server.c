@@ -31,20 +31,6 @@ void error(char *msg){
 	exit(1);
 }
 
-// void processPacket(Packet *p){
-// 	char buffer[2048];
-// 	bzero(buffer, 2048);
-// 	Packet* resp;
-// 	if ((p->header).reqField == 1){
-		
-// 		else {
-// 			buildHeader(resp, (p->header).destPort, (p->header).sourcePort, FILE_REQUEST, 1, 0);
-// 		}
-// 	}
-
-// 	printf("%s\n\n", buffer);
-// }
-
 void timeout(void) {
   TIMEOUT = 1;
   //printf("Timeout\n");

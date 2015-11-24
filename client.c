@@ -22,8 +22,6 @@
 #define CLIENT_HOST "localhost"
 #define CLIENT_PORT 8100
 
-//#define RAND_MAX 100
-
 void error(char *msg){
 	perror(msg);
 	exit(1);
@@ -148,7 +146,9 @@ int main(int argc, char *argv[]){
 			printPacket(dataRecieved);
 			int corrupted = corruptedPacket(corrPct);
 			int lost = lostPacket(lossPct);
-			printf("Seq %d Corrupted %d Lost %d\n", recv_seq, corrupted, lost);
+			if (corrupted) printf("Seq %d) Corrupted! ", recv_seq);
+			if (lost) printf("Seq %d) Lost! ", recv_seq);
+			if (corrupted || lost) printf("\n");
 			//if (!corrupted && !lost){
 				bzero(&ackSent, sizeof(Packet));
 				buildHeader(&ackSent, client_port, server_port, DATA, recv_seq, ACK, corrupted, (dataRecieved->header).transAlive);
