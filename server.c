@@ -98,7 +98,9 @@ int main(int argc, char *argv[]){
 	}
 
 	close(sockfd);
-	if (filed < 0) return 0;
+	if (filed < 0) {
+		error("File not found");
+	}
 	//END FILE REQUEST
 
 	//START DATA TRANSMISSION
