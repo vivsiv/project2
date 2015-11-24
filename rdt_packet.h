@@ -24,18 +24,12 @@
 
 #define PACKET_SIZE 2048
 
-#define CORRUPTED 1
-#define NOT_CORRUPTED 0
-
 #define ACK 1
 #define TRANS 0
 #define FILE_NOT_FOUND -1
 
 #define END 0
 #define KEEP_ALIVE 1
-
-#define LOST 1
-#define NOT_LOST 0
 
 #define WINDOW_SIZE 3
 
@@ -45,7 +39,6 @@ typedef struct {
 	int reqField;
 	int seqNumber;
 	int ackField;
-	//int corrField;
 	int transAlive;
 } Header;
 
@@ -60,7 +53,6 @@ void buildHeader(Packet *p, int srcPort, int destPort, int reqField, int seqNumb
 	(p->header).reqField = reqField;
 	(p->header).seqNumber = seqNumber;
 	(p->header).ackField = ackField;
-	//(p->header).corrField = corrField;
 	(p->header).transAlive = transAlive;
 }
 

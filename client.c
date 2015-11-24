@@ -8,6 +8,12 @@
 #define CLIENT_HOST "localhost"
 #define CLIENT_PORT 8100
 
+#define LOST 1
+#define NOT_LOST 0
+
+#define CORRUPTED 1
+#define NOT_CORRUPTED 0
+
 void error(char *msg){
 	perror(msg);
 	exit(1);
@@ -129,14 +135,14 @@ int main(int argc, char *argv[]){
 		int recv_seq = (dataRecieved->header).seqNumber;
 		//SEND ACK
 		if (recv_seq == expectedSeq){
-			printf("%d)Received DATA: ", recv_seq);
-			printPacket(dataRecieved);
 			int corrupted = corruptedPacket(corrPct);
 			int lost = lostPacket(lossPct);
 			if (corrupted) printf("Seq %d) Corrupted! ", recv_seq);
 			if (lost) printf("Seq %d) Lost! ", recv_seq);
 			if (corrupted || lost) printf("\n");
 			if (!corrupted && !lost){
+				printf("%d)Received DATA: ", recv_seq);
+				printPacket(dataRecieved);
 				bzero(&ackSent, sizeof(Packet));
 				buildHeader(&ackSent, client_port, server_port, DATA, recv_seq, ACK, (dataRecieved->header).transAlive);
 
