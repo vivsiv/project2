@@ -64,7 +64,7 @@ int main(int argc, char *argv[]){
 	serv_addr.sin_port = htons(server_port);
 
 	Packet fileRequest;
-	buildHeader(&fileRequest, client_port, server_port, FILE, 0, TRANS, NOT_CORRUPTED, KEEP_ALIVE);
+	buildHeader(&fileRequest, client_port, server_port, FILE, 0, TRANS, KEEP_ALIVE);
 	char* data = filename;
 	addData(&fileRequest,data);
 
@@ -139,9 +139,9 @@ int main(int argc, char *argv[]){
 			if (corrupted) printf("Seq %d) Corrupted! ", recv_seq);
 			if (lost) printf("Seq %d) Lost! ", recv_seq);
 			if (corrupted || lost) printf("\n");
-			//if (!corrupted && !lost){
+			if (!corrupted && !lost){
 				bzero(&ackSent, sizeof(Packet));
-				buildHeader(&ackSent, client_port, server_port, DATA, recv_seq, ACK, corrupted, (dataRecieved->header).transAlive);
+				buildHeader(&ackSent, client_port, server_port, DATA, recv_seq, ACK, (dataRecieved->header).transAlive);
 
 				if (sendto(sockfd, (char *)&ackSent, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0) {
 			        error("ERROR sending to socket");	
@@ -151,7 +151,7 @@ int main(int argc, char *argv[]){
 				printPacket(&ackSent);
 				if ((dataRecieved->header).transAlive == END) break;
 				if (!corrupted) expectedSeq++;
-			//}
+			}
 		}
 	}
 

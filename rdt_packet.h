@@ -37,7 +37,7 @@
 #define LOST 1
 #define NOT_LOST 0
 
-#define WINDOW_SIZE 5
+#define WINDOW_SIZE 3
 
 typedef struct {
 	int sourcePort;
@@ -45,7 +45,7 @@ typedef struct {
 	int reqField;
 	int seqNumber;
 	int ackField;
-	int corrField;
+	//int corrField;
 	int transAlive;
 } Header;
 
@@ -54,13 +54,13 @@ typedef struct {
 	char data[MAX_DATA];
 } Packet;
 
-void buildHeader(Packet *p, int srcPort, int destPort, int reqField, int seqNumber, int ackField, int corrField, int transAlive){
+void buildHeader(Packet *p, int srcPort, int destPort, int reqField, int seqNumber, int ackField, int transAlive){
 	(p->header).sourcePort = srcPort;
 	(p->header).destPort = destPort;
 	(p->header).reqField = reqField;
 	(p->header).seqNumber = seqNumber;
 	(p->header).ackField = ackField;
-	(p->header).corrField = corrField;
+	//(p->header).corrField = corrField;
 	(p->header).transAlive = transAlive;
 }
 
@@ -72,5 +72,5 @@ void printPacket(Packet *p){
 	char dataSample[11];
 	strncpy(dataSample, p->data, 10);
 	dataSample[10] = '\0';
-	printf("seq:%d|corr:%d|src:%d|dest:%d|ack:%d|req:%d|alive:%d|data:%s\n",(p->header).seqNumber, (p->header).corrField, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).transAlive, dataSample);
+	printf("seq:%d|src:%d|dest:%d|ack:%d|req:%d|alive:%d|data:%s\n",(p->header).seqNumber, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).transAlive, dataSample);
 }
