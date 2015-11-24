@@ -40,9 +40,7 @@
 #define WINDOW_SIZE 5
 
 typedef struct {
-	//char* sourceHost;
 	int sourcePort;
-	//char* destHost;
 	int destPort;
 	int reqField;
 	int seqNumber;
@@ -74,9 +72,5 @@ void printPacket(Packet *p){
 	char dataSample[11];
 	strncpy(dataSample, p->data, 10);
 	dataSample[10] = '\0';
-	
-	
-	// strncat(dataSample,"\0",1);
 	printf("seq:%d|corr:%d|src:%d|dest:%d|ack:%d|req:%d|alive:%d|data:%s\n",(p->header).seqNumber, (p->header).corrField, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).transAlive, dataSample);
-
 }

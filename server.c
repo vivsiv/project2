@@ -2,21 +2,9 @@
 	A server that implements Reliable Data Transfer on top of UDP
 	by Vivek Sivakumar and Colin Terndup;
 */
-// #include <stdio.h>
-// #include <sys/types.h> // definitions of a number of data types used in socket.h and netinet/in.h
-// #include <sys/socket.h> // definitions of structures needed for sockets, e.g. sockaddr
-// #include <netinet/in.h> // constants and structures needed for internet domain addresses, e.g. sockaddr_in
-// #include <stdlib.h>
-// #include <strings.h>
-// #include <sys/wait.h> // for the waitpid() system call
-// #include <signal.h>	 //signal name macros, and the kill() prototype */
-// #include <unistd.h>	
-// #include <time.h> // get current time for server response
-// #include <sys/stat.h>
-// #include <fcntl.h>
-// #include <string.h>
 
 #include "rdt_packet.h"
+
 #define RTO 50
 
 static int TIMEOUT = 0;
@@ -55,7 +43,6 @@ int main(int argc, char *argv[]){
 	}
 	
 	server_port = atoi(argv[1]);
-	//client_port = atoi(argv[2]);
 	
 	bzero((char *) &serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
@@ -66,9 +53,8 @@ int main(int argc, char *argv[]){
 		error("ERROR binding socket");
 	}
 
-	//listen(sockfd,1);
-
-	sa.sa_handler = sigchld_handler; // reap all dead processes
+	//Reap all dead processes
+	sa.sa_handler = sigchld_handler; 
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
 	if (sigaction(SIGCHLD, &sa, NULL) == -1) {
@@ -76,7 +62,6 @@ int main(int argc, char *argv[]){
 	    exit(1);
 	}
 	
-	int transNum = 0;
 	int filed;
 
 	clilen = sizeof(cli_addr);
@@ -114,7 +99,9 @@ int main(int argc, char *argv[]){
 
 	close(sockfd);
 	if (filed < 0) return 0;
+	//END FILE REQUEST
 
+	//START DATA TRANSMISSION
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd < 0){
 		error("Error opening Socket");
@@ -126,7 +113,7 @@ int main(int argc, char *argv[]){
 	bcopy((char *)client->h_addr, (char *)&cli_addr.sin_addr.s_addr, client->h_length);
 	cli_addr.sin_port = htons(client_port);
 	clilen = sizeof(cli_addr);
-	//DATA REQUEST LOOP
+
 	int windowStart = 0;
 	int windowEnd = windowStart + WINDOW_SIZE;
 	int currSeq = windowStart;
@@ -193,7 +180,7 @@ int main(int argc, char *argv[]){
 				//printf("Current Seq %d\n", currSeq);
 			}
 		}
-		//Prepare receiving packet;
+		//RECEIVE ACK;
 		bzero(recv_buffer,PACKET_SIZE);
 		if (recvfrom(sockfd, recv_buffer, PACKET_SIZE, 0, (struct sockaddr *)&cli_addr, &clilen) < 0){
 			error("ERROR reading from socket");
@@ -214,6 +201,6 @@ int main(int argc, char *argv[]){
 	}
 
 	close(sockfd);
-
+	//END DATA TRANSMISSION
 	return 0;
 }

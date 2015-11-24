@@ -2,20 +2,6 @@
 	A client that implements Reliable Data Transfer on top of UDP
 	by Vivek Sivakumar and Colin Terndup;
 */
-// #include <stdio.h>
-// #include <sys/types.h> // definitions of a number of data types used in socket.h and netinet/in.h
-// #include <sys/socket.h> // definitions of structures needed for sockets, e.g. sockaddr
-// #include <netinet/in.h> // constants and structures needed for internet domain addresses, e.g. sockaddr_in
-// #include <netdb.h>      // define structures like hostent
-// #include <stdlib.h>
-// #include <strings.h>
-// #include <sys/wait.h> // for the waitpid() system call
-// #include <signal.h>	 //signal name macros, and the kill() prototype */
-// #include <unistd.h>	
-// #include <time.h> // get current time for server response
-// #include <sys/stat.h>
-// #include <fcntl.h>
-// #include <string.h>
 
 #include "rdt_packet.h"
 
@@ -86,7 +72,7 @@ int main(int argc, char *argv[]){
     if (sendto(sockfd, (char *)&fileRequest, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) < 0) {
          error("ERROR sending to socket");	
     }
-    int transNum = 0;
+
     printf("Sent File Request: ");
 	printPacket(&fileRequest);
 
@@ -106,7 +92,9 @@ int main(int argc, char *argv[]){
 	if ((fileResponse->header).ackField == FILE_NOT_FOUND) {
 		error("File not Found on Server");
 	}
+	//END FILE REQUEST
 
+	//START RECEIVING DATA
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd < 0){
 		error("Error opening Socket");
@@ -131,6 +119,7 @@ int main(int argc, char *argv[]){
 	Packet *dataRecieved;
 	Packet ackSent;
 	while(1){
+		//RECEIVE DATA
 		//printf("Expecting sequence: %d\n", expectedSeq);
 		bzero(recv_buffer,PACKET_SIZE);
 		if(recvfrom(sockfd, recv_buffer, PACKET_SIZE, 0, (struct sockaddr *)&serv_addr, &servlen) < 0){
@@ -141,6 +130,7 @@ int main(int argc, char *argv[]){
 		dataRecieved = (Packet *)recv_buffer;
 		int recv_seq = (dataRecieved->header).seqNumber;
 		//printf("Received sequence: %d\n", recv_seq);
+		//SEND ACK
 		if (recv_seq == expectedSeq){
 			printf("%d)Received DATA: ", recv_seq);
 			printPacket(dataRecieved);
@@ -161,7 +151,6 @@ int main(int argc, char *argv[]){
 				printPacket(&ackSent);
 				if ((dataRecieved->header).transAlive == END) break;
 				if (!corrupted) expectedSeq++;
-				transNum++;
 			//}
 		}
 	}
