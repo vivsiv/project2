@@ -138,7 +138,7 @@ int main(int argc, char *argv[]){
 			//Read File
 			bzero(readBuf, MAX_DATA);
 			b_read = read(filed, readBuf, MAX_DATA - 1);
-			TRANS_ALIVE = b_read > 0 ? KEEP_ALIVE : END;
+			TRANS_ALIVE = b_read == MAX_DATA - 1 ? KEEP_ALIVE : END;
 
 			dataSent = (Packet *)malloc(sizeof(Packet));
 			buildHeader(dataSent, server_port, client_port, DATA, currSeq , TRANS, TRANS_ALIVE);
@@ -151,7 +151,7 @@ int main(int argc, char *argv[]){
 		    }
 		    printf("%d)Sent DATA: ", currSeq);
 			printPacket(dataSent);
-			if (b_read == 0) lastSeq = currSeq;
+			if (b_read < MAX_DATA - 1) lastSeq = currSeq;
 			currSeq++;
 		}
 
