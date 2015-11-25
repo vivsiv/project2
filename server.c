@@ -1,12 +1,12 @@
 /* 
 	A server that implements Reliable Data Transfer on top of UDP
-	by Vivek Sivakumar and Colin Terndup;
+	by Vivek Sivakumar and Colin Terndrup;
 */
 
 #include "rdt_packet.h"
 #include <poll.h>
 
-#define RTO_MSEC 500
+#define RTO_MSEC 50
 
 void sigchld_handler(int s)
 {
@@ -154,6 +154,7 @@ int main(int argc, char *argv[]){
 			if (b_read == 0) lastSeq = currSeq;
 			currSeq++;
 		}
+
 		polled = poll(sockets, 1, RTO_MSEC);
 		if (polled == POLLIN){
 			//RECEIVE ACK;
@@ -193,6 +194,7 @@ int main(int argc, char *argv[]){
 		}
 	}
 
+	close(filed);
 	close(sockfd);
 	//END DATA TRANSMISSION
 	return 0;
