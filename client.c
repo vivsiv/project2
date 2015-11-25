@@ -1,6 +1,6 @@
 /* 
 	A client that implements Reliable Data Transfer on top of UDP
-	by Vivek Sivakumar and Colin Terndup;
+	by Vivek Sivakumar and Colin Terndrup;
 */
 
 #include "rdt_packet.h"
@@ -34,7 +34,6 @@ int lostPacket(float lossPct){
 int main(int argc, char *argv[]){
 	int sockfd;
 	int client_port, server_port;
-	int filed;
 	char *filename, *server_host;
 	struct hostent *server;
 	struct sockaddr_in serv_addr, cli_addr;
@@ -123,6 +122,9 @@ int main(int argc, char *argv[]){
 
 	Packet *dataRecieved;
 	Packet ackSent;
+
+	int filed = open("out.txt", O_RDWR);
+	printf("got file out%d\n", filed);
 	while(1){
 		//RECEIVE DATA
 		bzero(recv_buffer,PACKET_SIZE);
@@ -143,6 +145,9 @@ int main(int argc, char *argv[]){
 			if (!corrupted && !lost){
 				printf("%d)Received DATA: ", recv_seq);
 				printPacket(dataRecieved);
+
+				write(filed, dataRecieved->data, (dataRecieved->header).dataSize);
+
 				bzero(&ackSent, sizeof(Packet));
 				buildHeader(&ackSent, client_port, server_port, DATA, recv_seq, ACK, (dataRecieved->header).transAlive);
 
@@ -157,7 +162,7 @@ int main(int argc, char *argv[]){
 			}
 		}
 	}
-
+	close(filed);
 	close(sockfd);
 
 	return 0;

@@ -40,6 +40,7 @@ typedef struct {
 	int seqNumber;
 	int ackField;
 	int transAlive;
+	int dataSize;
 } Header;
 
 typedef struct {
@@ -58,11 +59,13 @@ void buildHeader(Packet *p, int srcPort, int destPort, int reqField, int seqNumb
 
 void addData(Packet *p, char *data){
 	bcopy(data, p->data, strlen(data));
+	(p->header).dataSize = strlen(data);
+
 }
 
 void printPacket(Packet *p){
 	char dataSample[11];
 	strncpy(dataSample, p->data, 10);
 	dataSample[10] = '\0';
-	printf("seq:%d|src:%d|dest:%d|ack:%d|req:%d|alive:%d|data:%s\n",(p->header).seqNumber, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).transAlive, dataSample);
+	printf("seq:%d|src:%d|dest:%d|ack:%d|req:%d|alive:%d|dataSize:%d|data:%s\n",(p->header).seqNumber, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).transAlive, (p->header).dataSize, dataSample);
 }
