@@ -172,6 +172,7 @@ int main(int argc, char *argv[]){
 				windowEnd++;
 				free(window[0]);
 				memcpy(window, window + 1, (WINDOW_SIZE - 1) * sizeof(Packet *));
+				window[WINDOW_SIZE - 1] = NULL;
 				windowIdx--;
 			}
 		}
@@ -192,6 +193,9 @@ int main(int argc, char *argv[]){
 				retransIdx++;
 			}
 		}
+	}
+	for (int i = 0; i < WINDOW_SIZE; i++){
+		free(window[i]);	
 	}
 
 	close(filed);
