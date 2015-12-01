@@ -114,7 +114,8 @@ int main(int argc, char *argv[]){
 	int windowEnd = windowStart + WINDOW_SIZE;
 	int currSeq = windowStart;
 	Packet *window[WINDOW_SIZE];
-	for (int i = 0; i < WINDOW_SIZE; i++){
+	int i;
+	for (i = 0; i < WINDOW_SIZE; i++){
 		window[i] = NULL;
 	}
 	int windowIdx = 0;
@@ -182,11 +183,11 @@ int main(int argc, char *argv[]){
 				printPacket(ackRecieved);
 				if ((ackRecieved->header).seqNumber == lastSeq) break;
 				else if (winInc >= 1 && lastSeq == -1){
-					for (int i = 0; i < winInc; i++){
+					for (i = 0; i < winInc; i++){
 						free(window[i]);
 					}
 					memcpy(window, window + winInc, (WINDOW_SIZE - winInc) * sizeof(Packet *));
-					for (int i = (WINDOW_SIZE - 1); i >= (WINDOW_SIZE - winInc); i--){
+					for (i = (WINDOW_SIZE - 1); i >= (WINDOW_SIZE - winInc); i--){
 						window[i] = NULL;
 					}
 
@@ -215,10 +216,9 @@ int main(int argc, char *argv[]){
 		}
 	}
 
-	for (int i = 0; i < WINDOW_SIZE; i++){
+	for (i = 0; i < WINDOW_SIZE; i++){
 		free(window[i]);	
 	}
-
 
 	close(filed);
 	close(sockfd);
