@@ -1,32 +1,32 @@
 CC=gcc
 CFLAGS=-I.
 DEPS = rdt_packet.h
-OBJ = server.o 
-OBJ2 = client.o
+OBJ = sender.o 
+OBJ2 = receiver.o
 
 # %.o: %.c $(DEPS)
 # 	$(CC) -c -o $@ $< $(CFLAGS)
 
-#BUILD SERVER
-all: client server
+#BUILD SENDER
+all: receiver sender
 
-client: client.o
+receiver: receiver.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
-server: server.o
+sender: sender.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
-server.o: server.c
+sender.o: sender.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-client.o: client.c
+receiver.o: receiver.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-# server: $(OBJ)
+# sender: $(OBJ)
 # 	$(CC) -o $@ $^ $(CFLAGS)
 
-# client: $(OBJ2)
+# receiver: $(OBJ2)
 # 	$(CC) -o $@ $^ $(CFLAGS)
 
 clean: 
-	rm -f *.o server client   
+	rm -f *.o sender receiver   

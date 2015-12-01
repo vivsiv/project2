@@ -2,7 +2,7 @@ webserver.c
 serverfork.c
 *.pdf
 client_example.c
-client
-server
+receiver
+sender
 *.o
 *.txt
