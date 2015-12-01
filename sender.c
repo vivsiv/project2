@@ -24,7 +24,7 @@ int main(int argc, char *argv[]){
 	struct hostent *client;
 
 	if (argc < 1){
-		error("Error usage <server_port>");
+		error("Error usage <sender_port>");
 	}
 
 	if (argv[2]) WINDOW_SIZE = atoi(argv[2]);

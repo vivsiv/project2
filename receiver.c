@@ -1,5 +1,5 @@
 /* 
-	A client that implements Reliable Data Transfer on top of UDP
+	A receiver/client that implements Reliable Data Transfer on top of UDP
 	by Vivek Sivakumar and Colin Terndrup;
 */
 
@@ -20,7 +20,7 @@ int main(int argc, char *argv[]){
 	float lossPct, corrPct;
 
 	if (argc < 3){
-		error("Error usage <server_host> <server_port> <filename>");
+		error("Error usage <sender_host> <sender_port> <filename>");
 	}
 
 	client_port = CLIENT_PORT;
@@ -98,7 +98,7 @@ int main(int argc, char *argv[]){
 	}
 
 	int windowStart = 0;
-	//int windowEnd = windowStart + WINDOW_SIZE;
+	int windowEnd = windowStart + WINDOW_SIZE;
 	int expectedSeq = windowStart;
 
 	Packet *dataRecieved;

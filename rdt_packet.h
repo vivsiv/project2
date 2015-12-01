@@ -80,7 +80,7 @@ void printPacket(Packet *p){
 	char dataSample[11];
 	strncpy(dataSample, p->data, 10);
 	dataSample[10] = '\0';
-	printf("seq:%d|win:%d|src:%d|dest:%d|ack:%d|req:%d|alive:%d|dataSize:%d|data:%s\n",(p->header).seqNumber, (p->header).windowSize, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).transAlive, (p->header).dataSize, dataSample);
+	printf("seq:%d|src:%d|dest:%d|ack:%d|req:%d|alive:%d|dataSize:%d|data:%s\n",(p->header).seqNumber, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).transAlive, (p->header).dataSize, dataSample);
 }
 
 int corruptedPacket(float corrPct){
