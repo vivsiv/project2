@@ -22,12 +22,15 @@ int main(int argc, char *argv[]){
 	struct sockaddr_in serv_addr, cli_addr;
 	struct sigaction sa;
 	struct hostent *client;
+	float lossPct, corrPct;
 
 	if (argc < 1){
 		error("Error usage <sender_port>");
 	}
 
 	if (argv[2]) WINDOW_SIZE = atoi(argv[2]);
+	if (argv[3]) lossPct = atof(argv[3]);
+	if (argv[4]) corrPct = atof(argv[4]);
 	
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd < 0){
@@ -111,7 +114,11 @@ int main(int argc, char *argv[]){
 	int windowEnd = windowStart + WINDOW_SIZE;
 	int currSeq = windowStart;
 	Packet *window[WINDOW_SIZE];
+	for (int i = 0; i < WINDOW_SIZE; i++){
+		window[i] = NULL;
+	}
 	int windowIdx = 0;
+	int winInc = 0;
 
 	int b_read;
 	char readBuf[MAX_DATA];
@@ -161,17 +168,32 @@ int main(int argc, char *argv[]){
 				error("ERROR reading from socket");
 			}
 			ackRecieved = (Packet *)recv_buffer;
-			lastAck = (ackRecieved->header).seqNumber;
-			printf("%d)Received ACK: ", (ackRecieved->header).seqNumber);
-			printPacket(ackRecieved);
-			if ((ackRecieved->header).seqNumber == lastSeq) break;
-			else if (lastAck == windowStart && lastSeq == -1){
-				windowStart++;
-				windowEnd++;
-				free(window[0]);
-				memcpy(window, window + 1, (WINDOW_SIZE - 1) * sizeof(Packet *));
-				window[WINDOW_SIZE - 1] = NULL;
-				windowIdx--;
+
+			int corrupted = TRANS_ALIVE ? corruptedPacket(corrPct) : NOT_CORRUPTED;
+			int lost = TRANS_ALIVE ? lostPacket(lossPct) : NOT_LOST;
+			if (corrupted) printf("Ack %d) Corrupted! ", (ackRecieved->header).seqNumber);
+			if (lost) printf("Ack %d) Lost! ", (ackRecieved->header).seqNumber);
+			if (corrupted || lost) printf("\n");
+
+			if (!corrupted && !lost){
+				winInc = (ackRecieved->header).seqNumber - lastAck;
+				lastAck = (ackRecieved->header).seqNumber;
+				printf("%d)Received ACK: ", (ackRecieved->header).seqNumber);
+				printPacket(ackRecieved);
+				if ((ackRecieved->header).seqNumber == lastSeq) break;
+				else if (winInc >= 1 && lastSeq == -1){
+					for (int i = 0; i < winInc; i++){
+						free(window[i]);
+					}
+					memcpy(window, window + winInc, (WINDOW_SIZE - winInc) * sizeof(Packet *));
+					for (int i = (WINDOW_SIZE - 1); i >= (WINDOW_SIZE - winInc); i--){
+						window[i] = NULL;
+					}
+
+					windowStart += winInc;
+					windowEnd += winInc;
+					windowIdx -= winInc;
+				}
 			}
 		}
 		else {
@@ -192,9 +214,11 @@ int main(int argc, char *argv[]){
 			}
 		}
 	}
+
 	for (int i = 0; i < WINDOW_SIZE; i++){
 		free(window[i]);	
 	}
+
 
 	close(filed);
 	close(sockfd);

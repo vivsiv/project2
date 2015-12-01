@@ -117,33 +117,50 @@ int main(int argc, char *argv[]){
 
 		dataRecieved = (Packet *)recv_buffer;
 		int recv_seq = (dataRecieved->header).seqNumber;
+		int corrupted = corruptedPacket(corrPct);
+		int lost = lostPacket(lossPct);
+		if (corrupted) printf("Seq %d) Corrupted! ", recv_seq);
+		if (lost) printf("Seq %d) Lost! ", recv_seq);
+		if (corrupted || lost) printf("\n");
 		//SEND ACK
-		if (recv_seq == expectedSeq){
-			int corrupted = corruptedPacket(corrPct);
-			int lost = lostPacket(lossPct);
-			if (corrupted) printf("Seq %d) Corrupted! ", recv_seq);
-			if (lost) printf("Seq %d) Lost! ", recv_seq);
-			if (corrupted || lost) printf("\n");
+		if (recv_seq < expectedSeq){
 			if (!corrupted && !lost){
-				printf("%d)Received DATA: ", recv_seq);
+				printf("%d)Received OLD DATA: ", recv_seq);
+				printPacket(dataRecieved);
+				bzero(&ackSent, sizeof(Packet));
+				buildHeader(&ackSent, client_port, server_port, DATA, expectedSeq - 1, ACK, (dataRecieved->header).transAlive, WINDOW_SIZE);
+
+				if (sendto(sockfd, (char *)&ackSent, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0) {
+			        error("ERROR sending to socket");	
+			    }
+				    
+				printf("%d)Sent OLD ACK: ", recv_seq);
+				printPacket(&ackSent);
+			}
+		}
+		else if (recv_seq == expectedSeq){
+			if (!corrupted && !lost){
+				printf("%d)Received NEW DATA: ", recv_seq);
 				printPacket(dataRecieved);
 
-				write(filed, dataRecieved->data, (dataRecieved->header).dataSize);
-
 				bzero(&ackSent, sizeof(Packet));
+				int ackSeq = recv_seq < expectedSeq ? expectedSeq - 1 : expectedSeq;
 				buildHeader(&ackSent, client_port, server_port, DATA, recv_seq, ACK, (dataRecieved->header).transAlive, WINDOW_SIZE);
 
 				if (sendto(sockfd, (char *)&ackSent, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0) {
 			        error("ERROR sending to socket");	
 			    }
 				    
-				printf("%d)Sent ACK: ", recv_seq);
+				printf("%d)Sent NEW ACK: ", recv_seq);
 				printPacket(&ackSent);
+
+				write(filed, dataRecieved->data, (dataRecieved->header).dataSize);
 				if ((dataRecieved->header).transAlive == END) break;
 				if (!corrupted) expectedSeq++;
 			}
 		}
 	}
+
 	close(filed);
 	close(sockfd);
 
