@@ -31,7 +31,18 @@
 #define END 0
 #define KEEP_ALIVE 1
 
-#define WINDOW_SIZE 3
+#define FILE_WINDOW 1
+
+#define LOST 1
+#define NOT_LOST 0
+
+#define CORRUPTED 1
+#define NOT_CORRUPTED 0
+
+void error(char *msg){
+	perror(msg);
+	exit(1);
+}
 
 typedef struct {
 	int sourcePort;
@@ -40,6 +51,7 @@ typedef struct {
 	int seqNumber;
 	int ackField;
 	int transAlive;
+	int windowSize;
 	int dataSize;
 } Header;
 
@@ -48,13 +60,14 @@ typedef struct {
 	char data[MAX_DATA];
 } Packet;
 
-void buildHeader(Packet *p, int srcPort, int destPort, int reqField, int seqNumber, int ackField, int transAlive){
+void buildHeader(Packet *p, int srcPort, int destPort, int reqField, int seqNumber, int ackField, int transAlive, int windowSize){
 	(p->header).sourcePort = srcPort;
 	(p->header).destPort = destPort;
 	(p->header).reqField = reqField;
 	(p->header).seqNumber = seqNumber;
 	(p->header).ackField = ackField;
 	(p->header).transAlive = transAlive;
+	(p->header).windowSize = windowSize;
 }
 
 void addData(Packet *p, char *data){
@@ -67,5 +80,17 @@ void printPacket(Packet *p){
 	char dataSample[11];
 	strncpy(dataSample, p->data, 10);
 	dataSample[10] = '\0';
-	printf("seq:%d|src:%d|dest:%d|ack:%d|req:%d|alive:%d|dataSize:%d|data:%s\n",(p->header).seqNumber, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).transAlive, (p->header).dataSize, dataSample);
+	printf("seq:%d|win:%d|src:%d|dest:%d|ack:%d|req:%d|alive:%d|dataSize:%d|data:%s\n",(p->header).seqNumber, (p->header).windowSize, (p->header).sourcePort, (p->header).destPort,(p->header).ackField, (p->header).reqField, (p->header).transAlive, (p->header).dataSize, dataSample);
+}
+
+int corruptedPacket(float corrPct){
+	float r = (float)(rand() % 100);
+	float corrLimit = corrPct * 100.0;
+    return r < corrLimit ? CORRUPTED : NOT_CORRUPTED;
+}
+
+int lostPacket(float lossPct){
+	float r = (float)(rand() % 100);
+	float lossLimit = lossPct * 100.0;
+    return r < lossLimit ? LOST : NOT_LOST;
 }

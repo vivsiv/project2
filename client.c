@@ -8,28 +8,8 @@
 #define CLIENT_HOST "localhost"
 #define CLIENT_PORT 8100
 
-#define LOST 1
-#define NOT_LOST 0
 
-#define CORRUPTED 1
-#define NOT_CORRUPTED 0
-
-void error(char *msg){
-	perror(msg);
-	exit(1);
-}
-
-int corruptedPacket(float corrPct){
-	float r = (float)(rand() % 100);
-	float corrLimit = corrPct * 100.0;
-    return r < corrLimit ? CORRUPTED : NOT_CORRUPTED;
-}
-
-int lostPacket(float lossPct){
-	float r = (float)(rand() % 100);
-	float lossLimit = lossPct * 100.0;
-    return r < lossLimit ? LOST : NOT_LOST;
-}
+static int WINDOW_SIZE = 3;
 
 int main(int argc, char *argv[]){
 	int sockfd;
@@ -68,7 +48,7 @@ int main(int argc, char *argv[]){
 	serv_addr.sin_port = htons(server_port);
 
 	Packet fileRequest;
-	buildHeader(&fileRequest, client_port, server_port, FILE, 0, TRANS, KEEP_ALIVE);
+	buildHeader(&fileRequest, client_port, server_port, FILE, 0, TRANS, KEEP_ALIVE, FILE_WINDOW);
 	char* data = filename;
 	addData(&fileRequest,data);
 
@@ -92,6 +72,7 @@ int main(int argc, char *argv[]){
 	Packet *fileResponse = (Packet *)recv_buffer;
 	printf("Received File Response: ");
 	printPacket(fileResponse);
+	WINDOW_SIZE = (fileResponse->header).windowSize;
 
 	if ((fileResponse->header).ackField == FILE_NOT_FOUND) {
 		error("File not Found on Server");
@@ -117,7 +98,7 @@ int main(int argc, char *argv[]){
 	}
 
 	int windowStart = 0;
-	int windowEnd = windowStart + WINDOW_SIZE;
+	//int windowEnd = windowStart + WINDOW_SIZE;
 	int expectedSeq = windowStart;
 
 	Packet *dataRecieved;
@@ -125,6 +106,7 @@ int main(int argc, char *argv[]){
 
 	int filed = open("out.txt", O_RDWR);
 	printf("got file out%d\n", filed);
+	printf("Receiving Window Size:%d\n", WINDOW_SIZE);
 	while(1){
 		//RECEIVE DATA
 		bzero(recv_buffer,PACKET_SIZE);
@@ -149,7 +131,7 @@ int main(int argc, char *argv[]){
 				write(filed, dataRecieved->data, (dataRecieved->header).dataSize);
 
 				bzero(&ackSent, sizeof(Packet));
-				buildHeader(&ackSent, client_port, server_port, DATA, recv_seq, ACK, (dataRecieved->header).transAlive);
+				buildHeader(&ackSent, client_port, server_port, DATA, recv_seq, ACK, (dataRecieved->header).transAlive, WINDOW_SIZE);
 
 				if (sendto(sockfd, (char *)&ackSent, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0) {
 			        error("ERROR sending to socket");	

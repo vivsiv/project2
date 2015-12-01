@@ -8,14 +8,11 @@
 
 #define RTO_MSEC 50
 
+static int WINDOW_SIZE = 3;
+
 void sigchld_handler(int s)
 {
     while(waitpid(-1, NULL, WNOHANG) > 0);
-}
-
-void error(char *msg){
-	perror(msg);
-	exit(1);
 }
 
 int main(int argc, char *argv[]){
@@ -30,6 +27,7 @@ int main(int argc, char *argv[]){
 		error("Error usage <server_port>");
 	}
 
+	if (argv[2]) WINDOW_SIZE = atoi(argv[2]);
 	
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd < 0){
@@ -78,8 +76,8 @@ int main(int argc, char *argv[]){
 
 		if ((fileRequest->header).reqField == 1){
 			filed = open(fileRequest->data, O_RDONLY);
-			if (filed < 0) buildHeader(&fileResponse, (fileRequest->header).destPort, (fileRequest->header).sourcePort, FILE, 0, FILE_NOT_FOUND, END);
-			else buildHeader(&fileResponse, (fileRequest->header).destPort, (fileRequest->header).sourcePort, FILE, 0, TRANS, KEEP_ALIVE);
+			if (filed < 0) buildHeader(&fileResponse, (fileRequest->header).destPort, (fileRequest->header).sourcePort, FILE, 0, FILE_NOT_FOUND, END, WINDOW_SIZE);
+			else buildHeader(&fileResponse, (fileRequest->header).destPort, (fileRequest->header).sourcePort, FILE, 0, TRANS, KEEP_ALIVE, WINDOW_SIZE);
 			if (sendto(sockfd, (char *)&fileResponse, sizeof(Packet), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr_in)) < 0) {
 		        error("ERROR sending to socket");	
 		    }
@@ -132,7 +130,7 @@ int main(int argc, char *argv[]){
     int polled;
 
 	while(1){
-		printf("Window [%d-%d), Size:%d\n", windowStart, windowEnd, WINDOW_SIZE);
+		printf("Send Window [%d-%d), Size:%d\n", windowStart, windowEnd, WINDOW_SIZE);
 		//REGULAR TRANSMIT
 		while (TRANS_ALIVE && currSeq < windowEnd){
 			//Read File
@@ -141,7 +139,7 @@ int main(int argc, char *argv[]){
 			TRANS_ALIVE = b_read == MAX_DATA - 1 ? KEEP_ALIVE : END;
 
 			dataSent = (Packet *)malloc(sizeof(Packet));
-			buildHeader(dataSent, server_port, client_port, DATA, currSeq , TRANS, TRANS_ALIVE);
+			buildHeader(dataSent, server_port, client_port, DATA, currSeq , TRANS, TRANS_ALIVE, WINDOW_SIZE);
 			addData(dataSent, readBuf);
 			window[windowIdx] = dataSent;
 			if (windowIdx < windowEnd) windowIdx++;
