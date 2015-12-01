@@ -1,5 +1,5 @@
 /* 
-	A server that implements Reliable Data Transfer on top of UDP
+	A sender/server that implements Reliable Data Transfer on top of UDP
 	by Vivek Sivakumar and Colin Terndrup;
 */
 
