@@ -123,8 +123,8 @@ int main(int argc, char *argv[]){
 		if (lost) printf("Seq %d) Lost! ", recv_seq);
 		if (corrupted || lost) printf("\n");
 		//SEND ACK
-		if (recv_seq < expectedSeq){
-			if (!corrupted && !lost){
+		if (!corrupted && !lost){
+			if (recv_seq < expectedSeq){
 				printf("%d)Received OLD DATA: ", recv_seq);
 				printPacket(dataRecieved);
 				bzero(&ackSent, sizeof(Packet));
@@ -137,14 +137,11 @@ int main(int argc, char *argv[]){
 				printf("%d)Sent OLD ACK: ", recv_seq);
 				printPacket(&ackSent);
 			}
-		}
-		else if (recv_seq == expectedSeq){
-			if (!corrupted && !lost){
+			else if (recv_seq == expectedSeq){
 				printf("%d)Received NEW DATA: ", recv_seq);
 				printPacket(dataRecieved);
 
 				bzero(&ackSent, sizeof(Packet));
-				int ackSeq = recv_seq < expectedSeq ? expectedSeq - 1 : expectedSeq;
 				buildHeader(&ackSent, client_port, server_port, DATA, recv_seq, ACK, (dataRecieved->header).transAlive, WINDOW_SIZE);
 
 				if (sendto(sockfd, (char *)&ackSent, sizeof(Packet), 0, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0) {
@@ -156,7 +153,7 @@ int main(int argc, char *argv[]){
 
 				write(filed, dataRecieved->data, (dataRecieved->header).dataSize);
 				if ((dataRecieved->header).transAlive == END) break;
-				if (!corrupted) expectedSeq++;
+				expectedSeq++;
 			}
 		}
 	}

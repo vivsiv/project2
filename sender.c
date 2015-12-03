@@ -177,10 +177,12 @@ int main(int argc, char *argv[]){
 			if (corrupted || lost) printf("\n");
 
 			if (!corrupted && !lost){
-				winInc = (ackRecieved->header).seqNumber - lastAck;
-				lastAck = (ackRecieved->header).seqNumber;
 				printf("%d)Received ACK: ", (ackRecieved->header).seqNumber);
 				printPacket(ackRecieved);
+
+				winInc = (ackRecieved->header).seqNumber - lastAck;
+				lastAck = (ackRecieved->header).seqNumber;
+				
 				if ((ackRecieved->header).seqNumber == lastSeq) break;
 				else if (winInc >= 1 && lastSeq == -1){
 					for (i = 0; i < winInc; i++){
